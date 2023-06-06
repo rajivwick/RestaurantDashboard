@@ -1,0 +1,534 @@
+
+
+<body>
+    {% extends 'base.html' %}
+    
+    {% block content %}
+      <!-- Bootstrap JS -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- -->
+
+    <div class="row" style="margin-top: 50px">
+        <div class="col">
+          <div class="card shadow mb-4" style="border-radius: 1rem;">
+            <div class="card-header">
+              <h2 class="text-center">Date</h2>
+            </div>
+            <div class="card-body text-center">
+              <h3 class="display-4">{{current_datetime}}</h3>
+            </div>
+          </div>
+        </div>
+    </div>
+    
+    <div class="row">  
+        <div class="col-sm-6">
+          <div class="card shadow mb-4" style="border-radius: 1rem;">
+            <div class="card-header">
+              <h2 class="text-center" id="monthValue"></h2>
+            </div>
+            <div class="card-body text-center">
+              <h3 class="display-4">Value: $<span id="revenueMonthValue" class="text-primary"></span></h3>
+            </div>
+          </div>
+        </div>
+      
+        <div class="col-sm-6">
+          <div class="card shadow mb-4" style="border-radius: 1rem;">
+            <div class="card-header">
+              <h2 class="text-center" id="lastYearID"></h2>
+            </div>
+            <div class="card-body text-center">
+              <h3 class="display-4">Value: $<span id="revenueLastYearMonthValue" class="text-primary"></span></h3>
+            </div>
+          </div>
+        </div>
+    </div>
+      
+
+  
+    <!-- First row of charts -->
+    <div class="row">
+        <div class="col-md-6">
+        <div class="card shadow rounded-lg">
+            <div class="card-body">
+            <canvas id="chart2" style="background-color: white;"></canvas>
+            </div>
+        </div>
+        </div>
+        <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+            <canvas id="chart3" style="background-color: white;"></canvas>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!--Dropdown Menu -->
+    <div class="start">   
+        <form>
+            <label for="dropdown">Select an item:</label>
+            <select id="dropdown">
+              {% for item in items %}
+              <option value="{{ item }}">{{ item }}</option>
+              {% endfor %}
+            </select>
+          </form>
+      </div>
+    
+    <!-- Second row of charts -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+        <div class="card shadow rounded-lg">
+            <div class="card-body">
+            <canvas id="chart" style="background-color: white;"></canvas>
+            </div>
+        </div>
+        </div>
+        <div class="col-md-4">
+        <div class="card shadow rounded-lg">
+            <div class="card-body">
+            <canvas id="chart4" style="background-color: white;"></canvas>
+            </div>
+        </div>
+        </div>
+        <div class="col-md-4">
+        <div class="card shadow rounded-lg">
+            <div class="card-body">
+            <canvas id="chart5" style="background-color: white;"></canvas>
+            </div>
+        </div>
+        </div>
+    </div>
+
+<!-- Add this right after the second row of charts -->
+<!-- Row for tables -->
+<div class="row mt-4">
+    <div class="col-md-6">
+    <h2>Top 10 Dishes</h2>
+      <!-- Table for top 10 revenues -->
+      <table class="table table-striped" id="revenueTop10Table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Item</th>
+            <th scope="col">Units Sold</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- The rows of this table will be populated dynamically with JavaScript -->
+        </tbody>
+      </table>
+    </div>
+    <div class="col-md-6">
+    <h2>Bottom 10 Dishes</h2>
+      <!-- Table for bottom 10 revenues -->
+      <table class="table table-striped" id="revenueBot10Table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Item</th>
+            <th scope="col">Units Sold</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- The rows of this table will be populated dynamically with JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>  
+  
+  <script>
+    // Retrieve the DataFrame from Flask and parse it
+    const item_df = JSON.parse('{{ item_df|safe }}');
+    
+    const revenue_df = JSON.parse('{{ revenue_df|safe }}');
+    const revenue_group_df = JSON.parse('{{ revenue_group_df|safe }}');
+    const revenue_current_df = JSON.parse('{{ revenue_current_df|safe }}');
+    const revenue_top_10 = JSON.parse('{{ revenue_top_10|safe }}');
+    const revenue_bot_10 = JSON.parse('{{ revenue_bot_10|safe }}');
+
+      
+    
+    const current_month = {{current_month}}
+    const next_month = {{current_month}} + 1
+    const last_month = {{current_month}} - 1
+    const lastYear = {{current_year}} - 1
+    
+
+    
+
+
+    function getRevenueGroupCurrentMonth(targetYear,targetMonth) {
+        const filteredRevenueGroupCurrentYear = revenue_group_df.filter(row => new Date(row['date']).getFullYear() === targetYear);
+        const filteredRevenueGroupCurrentMonth = filteredRevenueGroupCurrentYear.filter(row => new Date(row['date']).getMonth() + 1 === targetMonth);
+        const RevenueGroupCurrentMonth = filteredRevenueGroupCurrentMonth.map(row => row['total($)'])
+        
+        return {RevenueGroupCurrentMonth};
+
+    }
+
+    function getRevenueByMonth(selectedOption, targetMonth) {
+        const filteredRevenueByMonth = revenue_df.filter(row => row['item'] === selectedOption && new Date(row['date']).getMonth() + 1 === targetMonth);
+        const revenueByMonth = filteredRevenueByMonth.map(row => row['total($)']);
+        const labelsRevenueByMonth = filteredRevenueByMonth.map(row => row['date']);
+
+        return {revenueByMonth, labelsRevenueByMonth};
+    }
+
+    function getRevenueByMonthN(selectedOption, targetMonth) {
+        const filteredRevenueByMonthN = revenue_df.filter(row => row['item'] === selectedOption && new Date(row['date']).getMonth() + 1 === targetMonth);
+        const revenueByMonthN = filteredRevenueByMonthN.map(row => row['total($)']);
+        const labelsRevenueByMonthN = filteredRevenueByMonthN.map(row => row['date']);
+
+        return {revenueByMonthN, labelsRevenueByMonthN};
+    }
+    // Function to filter the DataFrame based on the selected option and retrieve the relevant data
+    function getData(selectedOption) {
+        const filteredData = item_df.filter(row => row['item'] === selectedOption);
+        const data = filteredData.map(row => row['sold']);
+        const labels = filteredData.map(row=> row['date']);
+      
+        return {data, labels}; 
+    }
+
+    function getDataByMonth(selectedOption, targetMonth) {
+        const filteredDataByMonth = item_df.filter(row => row['item'] === selectedOption && new Date(row['date']).getMonth() + 1 === targetMonth);
+        const dataDataByMonth = filteredDataByMonth.map(row => row['sold']);
+        const labelsDataByMonth = filteredDataByMonth.map(row => row['date']);
+
+        return { dataDataByMonth, labelsDataByMonth };
+    }
+
+    function getDataByMonthN(selectedOption, targetMonth) {
+        const filteredDataByMonthN = item_df.filter(row => row['item'] === selectedOption && new Date(row['date']).getMonth() + 1 === targetMonth);
+        const dataDataByMonthN = filteredDataByMonthN.map(row => row['sold']);
+        const labelsDataByMonthN = filteredDataByMonthN.map(row => row['date']);
+
+        return { dataDataByMonthN, labelsDataByMonthN };
+    }
+
+    //function getRevenueCurrentMonthData(targetMonth) {
+    //    const RevenueCurrentByMonth = revenue_current_df.filter(row => new Date(row['date']).getMonth() + 1 === targetMonth);
+    //    const RevenueCurrentByMonthData = RevenueCurrentByMonth.map(row=> row['total($)']);
+    //    const RevenueCurrentByMonthLabel = RevenueCurrentByMonth.map(row=> row['item']);
+
+    //    return {RevenueCurrentByMonthData, RevenueCurrentByMonthLabel};
+    //}
+    
+    const revenueGroupData = revenue_group_df.map(row => row['total($)']);
+    const revenueGroupLabels = revenue_group_df.map(row=> row['date']);
+
+    //const {revenueCurrentData, revenueCurrentLabels } = getRevenueCurrentMonthData(current_month);
+    const revenueCurrentData = revenue_current_df.map(row=> row['total($)']);
+    const revenueCurrentLabels = revenue_current_df.map(row=> row['item']);
+    console.log(revenue_current_df)
+    const backgroundColor = generateBackgroundColors(revenueCurrentData.length);
+
+
+    //Cards
+
+    const revenueCurrentMonth = getRevenueGroupCurrentMonth(2022,last_month);
+    const revenueCurrentMonthValue = revenueCurrentMonth.RevenueGroupCurrentMonth[0];
+    const revenueMonthValue = document.getElementById('revenueMonthValue');
+    revenueMonthValue.textContent = revenueCurrentMonthValue;
+    console.log(revenueCurrentMonthValue);
+    
+    const monthValueElement = document.getElementById('monthValue');
+    const monthName = new Date(0, last_month - 1).toLocaleString('default', { month: 'long' });
+    const formattedMonthValue = `${monthName} {{current_year}} - Revenue`;
+    monthValueElement.textContent = formattedMonthValue;
+
+    
+    const revenueLastYearMonth = getRevenueGroupCurrentMonth(2021,last_month);
+    const revenueLastYearValue = revenueLastYearMonth.RevenueGroupCurrentMonth[0];
+    const revenueLastYearMonthValue = document.getElementById('revenueLastYearMonthValue');
+    revenueLastYearMonthValue.textContent = revenueLastYearValue;
+    console.log(revenueLastYearValue);
+
+    const lastYearID = document.getElementById('lastYearID');
+    const formattedLastYear = `${monthName} ${lastYear} - Revenue`;
+    lastYearID.textContent = formattedLastYear;
+
+    // Get table bodies
+    const revenueTop10TableBody = document.getElementById('revenueTop10Table').getElementsByTagName('tbody')[0];
+    const revenueBot10TableBody = document.getElementById('revenueBot10Table').getElementsByTagName('tbody')[0];
+
+    // Populate top 10 revenues table
+    revenue_top_10.forEach((row, index) => {
+    const newRow = revenueTop10TableBody.insertRow();
+    newRow.insertCell().innerHTML = index + 1;  // Index
+    newRow.insertCell().innerHTML = row['item'];  // Item
+    newRow.insertCell().innerHTML = row['sold'];  // Revenue
+    });
+
+    // Populate bottom 10 revenues table
+    revenue_bot_10.forEach((row, index) => {
+    const newRow = revenueBot10TableBody.insertRow();
+    newRow.insertCell().innerHTML = index + 1;  // Index
+    newRow.insertCell().innerHTML = row['item'];  // Item
+    newRow.insertCell().innerHTML = row['sold'];  // Revenue
+    });
+
+
+    // Get the drop-down element
+    const dropdown = document.getElementById('dropdown');
+    
+    // Get the chart canvas
+    const chartCanvas = document.getElementById('chart');
+    const chartCanvas2 = document.getElementById('chart2')
+    const chartCanvas3 = document.getElementById('chart3')
+    const chartCanvas4 = document.getElementById('chart4')
+    const chartCanvas5 = document.getElementById('chart5')
+
+    // Variable to store the chart instance
+    let chart;
+    let chart2;
+    let chart3;
+    let chart4;
+    let chart5;
+
+    //**** STATIC GRAPHS ****
+    // Create the second chart using Chart.js
+    const ctx2 = chartCanvas2.getContext('2d');
+    chart2 = new Chart(ctx2, {
+        type: 'line',
+        data: {
+            labels: revenueGroupLabels,
+            datasets: [{
+                label: 'Revenue in $',
+                data: revenueGroupData,
+                borderColor: '#b8e0d2 ',
+                backgroundColor: '#b8e0d2 ',
+                fill: false
+            }]
+            },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+        });
+
+    const ctx3 = chartCanvas3.getContext('2d');
+    chart3 = new Chart(ctx3, {
+        type: 'doughnut',
+        data: {
+        labels: revenueCurrentLabels,
+        datasets: [{
+            label: 'Pie Chart',
+            data: revenueCurrentData,
+            //backgroundColor: backgroundColor // Customize the colors as needed
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+        legend: {
+            display: false,
+            position: 'bottom',
+            labels: {
+                font: {
+                    size: 14
+                }
+            }
+        }
+    },
+    layout: {
+        padding: {
+            bottom: 30
+        }
+    },
+    elements: {
+        arc: {
+            borderWidth: 1
+        }
+    },
+    cutout: '30%'
+        }
+    });  
+
+
+
+    // Add an event listener to handle the selection change
+    dropdown.addEventListener('change', function() {
+
+    
+        const selectedOption = dropdown.value;
+
+        // Clear the existing chart if it exists
+        if (chart) {
+            chart.destroy();
+        }
+        if (chart4) {
+            chart4.destroy();
+        }
+        if (chart5) {
+            chart5.destroy();
+        }
+
+
+        const {data, labels} = getData(selectedOption);
+        const {dataDataByMonth, labelsDataByMonth} = getDataByMonth(selectedOption, current_month);
+        const {dataDataByMonthN, labelsDataByMonthN} = getDataByMonthN(selectedOption, next_month);
+        const {revenueByMonth, labelsRevenueByMonth} = getRevenueByMonth(selectedOption, current_month);
+        const {revenueByMonthN, labelsRevenueByMonthN} = getRevenueByMonthN(selectedOption, next_month);
+        
+        console.log("revenueByMonth:", revenueByMonth);
+        console.log("Data2:", dataDataByMonth);
+        console.log("Labels2:", labelsDataByMonth);
+
+
+        // ****DYNAMIC GRAPHS - UPDATES ON CHANGE OF DROPDOWN MENU OPTION SELECTED****
+        // Create the chart using Chart.js
+        const ctx = chartCanvas.getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels.map(label => label.slice(0, 15)),  // Example labels, customize as needed
+                datasets: [{
+                    label: selectedOption,
+                    data: data,
+                    borderColor: '#e8dff5',
+                    backgroundColor: '#e8dff5',
+                    fill: true
+                    }]
+                },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+        
+        // Create the chart using Chart.js
+        const ctx4 = chartCanvas4.getContext('2d');
+        chart4 = new Chart(ctx4, {
+            type: 'bar',
+            data: {
+                labels: labelsDataByMonth,  // Example labels, customize as needed
+                datasets: [{
+                    label: '$',
+                    data: revenueByMonth,
+                    type: 'line',
+                    fill: false,
+                    borderColor: '#f68c70',
+                    backgroundColor:'#f68c70',
+                    borderWidth: 1,
+                    yAxisID: 'y-axis-2'
+                    },
+                    {
+                    label: selectedOption,
+                    data: dataDataByMonth,
+                    borderColor: '#fcf4dd',
+                    backgroundColor: '#fcf4dd',
+                    fill: false
+                    }
+                ]
+                },
+                
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    id: 'y-axis-1'
+                },
+                'y-axis-2': {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: {
+                    drawOnChartArea: false
+                    }
+                }
+            }
+        }
+
+        });
+   
+        // Create the chart using Chart.js
+        const ctx5 = chartCanvas5.getContext('2d');
+        chart5 = new Chart(ctx5, {
+            type: 'bar',
+            data: {
+                labels: labelsDataByMonthN,  // Example labels, customize as needed
+                datasets: [{
+                    label: '$',
+                    data: revenueByMonthN,
+                    type: 'line',
+                    fill: false,
+                    borderColor: '#f68c70',
+                    backgroundColor: '#f68c70',
+                    borderWidth: 1,
+                    yAxisID: 'y-axis-2'
+                    },
+                    {
+                    label: selectedOption,
+                    data: dataDataByMonthN,
+                    borderColor: 'daeaf6',
+                    backgroundColor: '#daeaf6',
+                    fill: false
+                    },
+                    
+                ]
+                },
+                
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    id: 'y-axis-1'
+                },
+                'y-axis-2': {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: {
+                    drawOnChartArea: false
+                    }
+                }
+            }
+        }
+        });
+
+
+    });
+    
+    // Function to generate dynamic background colors
+    function generateBackgroundColors(length) {
+      const colors = [];
+      for (let i = 0; i < length; i++) {
+        const color = getRandomColor();  // You can customize this function to generate colors
+        colors.push(color);
+      }
+      return colors;
+    }
+
+    // Function to generate a random color
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+  </script>
+
+    {% endblock %}
+
+</body>
+
+

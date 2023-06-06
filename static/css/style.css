@@ -1,0 +1,83 @@
+.style{
+  color:navy;
+  font-weight: 900;
+  font-size: 1.5em;
+}
+
+
+#backgroundColor{
+  margin-top: 3px;
+  margin-bottom: 3px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #0A0A0A;
+
+}
+
+#bc{
+  background-color:	rgba(240,248,255, 0.5);
+  margin-top: 3px;
+  margin-bottom: 3px;
+  padding: 15px;
+}
+
+#bc1{
+  background-color:	rgba(240,248,255, 0.8);
+  margin-top: 25px;
+  margin-bottom: 5px;
+  padding: 15px;
+}
+
+
+.start {
+  margin-top: 50px;
+
+}
+
+#chart {
+      	
+      	width: 500px;
+      	height: 400px;
+}
+#chart2 {
+	
+     	width: 500px;
+      	height: 500px;
+}
+#chart3 {
+	
+      	width: 500px;
+      	height: 500px;
+}
+#chart4 {
+ 	
+     	width: 500px;
+      	height: 400px;
+}
+#chart5 {
+ 	
+     	width: 500px;
+      	height: 400px;
+}
+.rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.table.table-striped {
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    min-width: 400px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.table.table-striped thead tr {
+    background-color: #f68c70;
+    color: #ffffff;
+    text-align: left;
+}
+.table.table-striped th,
+.table.table-stripede td {
+    padding: 12px 15px;
+}
